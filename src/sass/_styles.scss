@@ -49,3 +49,25 @@
 .material-icons {
   margin-right: 10px;
 }
+.show-more__btn {
+  display: flex;
+  align-items: center;
+
+  text-align: center;
+
+  border-radius: 5px;
+  padding: 5px;
+}
+.btn-text {
+  margin-right: 10px;
+}
+.is-hidden {
+  display: none;
+}
+.search-form {
+  display: flex;
+  align-items: center;
+}
+.spinner {
+  margin-left: 20px;
+}
