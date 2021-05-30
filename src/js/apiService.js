@@ -3,6 +3,7 @@ export default {
   KEY: '21704664-f3a5361496563a8a6716b3b47',
   pageNumber: 1,
   query: '',
+  smallPics: [],
   //   options: {},
   fetchImages() {
     return fetch(

@@ -4,6 +4,8 @@ import './sass/main.scss';
 import apiServise from './js/apiService.js';
 import galleryTpl from './templates/gallery.hbs';
 
+import * as basicLightbox from 'basiclightbox';
+
 const refs = {
   input: document.querySelector('[name="query"]'),
   gallery: document.querySelector('.gallery'),
@@ -11,6 +13,7 @@ const refs = {
   spinner: document.querySelector('.js-spinner'),
   btnSpinner: document.querySelector('.js-btn-spinner'),
   box: document.querySelector('.box'),
+  toTopBtn: document.querySelector('.to-top'),
 };
 
 refs.input.addEventListener('input', debounce(handleInput, 1000));
@@ -31,28 +34,63 @@ function handleInput(event) {
       } else {
         makeButtonActive();
         populateGallery(data);
+
+        apiServise.smallPics = document.querySelectorAll('.small-pic');
       }
     })
     .catch(alert)
-    .finally(makeSmoothScroll);
+    .finally(() => {
+      let i = 0;
+      let sources = [];
+      const imgObserver = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            // console.log();
+            if (!sources.includes(entry.target.src)) {
+              sources.push(entry.target.src);
+              i += 1;
+            }
+            console.log(i);
+            if (i === 12) {
+              apiServise
+                .fetchImages()
+                .then(data => {
+                  populateGallery(data);
+
+                  refs.showMoreBtn.disabled = false;
+                  refs.btnSpinner.classList.add('is-hidden');
+                })
+                .catch(alert)
+                .finally(makeSmoothScroll);
+
+              i = 0;
+              return;
+            }
+          }
+        });
+      });
+      apiServise.smallPics.forEach(img => {
+        imgObserver.observe(img);
+      });
+    });
 }
 
-refs.showMoreBtn.addEventListener('click', handleMoreClick);
+// refs.showMoreBtn.addEventListener('click', handleMoreClick);
 
-function handleMoreClick() {
-  makeButtonNoActive();
+// function handleMoreClick() {
+//   makeButtonNoActive();
 
-  apiServise
-    .fetchImages()
-    .then(data => {
-      populateGallery(data);
+//   apiServise
+//     .fetchImages()
+//     .then(data => {
+//       populateGallery(data);
 
-      refs.showMoreBtn.disabled = false;
-      refs.btnSpinner.classList.add('is-hidden');
-    })
-    .catch(alert)
-    .finally(makeSmoothScroll);
-}
+//       refs.showMoreBtn.disabled = false;
+//       refs.btnSpinner.classList.add('is-hidden');
+//     })
+//     .catch(alert)
+//     .finally(makeSmoothScroll);
+// }
 
 function clearBeforePopulating() {
   refs.gallery.innerHTML = '';
@@ -78,3 +116,26 @@ function makeButtonActive() {
   refs.spinner.classList.add('is-hidden');
   refs.showMoreBtn.classList.remove('is-hidden');
 }
+
+const myObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) {
+      refs.toTopBtn.classList.remove('is-hidden');
+    } else {
+      refs.toTopBtn.classList.add('is-hidden');
+    }
+  });
+});
+myObserver.observe(refs.input);
+
+refs.gallery.addEventListener('click', event => {
+  console.log(event.target.dataset.src);
+  console.log(event.target.src);
+  if (event.target.nodeName === 'IMG') {
+    const instance = basicLightbox.create(`
+  	<img src="${event.target.dataset.src}" alt="big pic"/>
+  `);
+
+    instance.show();
+  }
+});
