@@ -9,16 +9,16 @@ import * as basicLightbox from 'basiclightbox';
 const refs = {
   input: document.querySelector('[name="query"]'),
   gallery: document.querySelector('.gallery'),
-  showMoreBtn: document.querySelector('[data-action="show-more"]'),
   spinner: document.querySelector('.js-spinner'),
   btnSpinner: document.querySelector('.js-btn-spinner'),
   box: document.querySelector('.box'),
   toTopBtn: document.querySelector('.to-top'),
+  trigger: document.querySelector('.scroll-trigger'),
 };
 
 refs.input.addEventListener('input', debounce(handleInput, 1000));
 
-function handleInput(event) {
+async function handleInput(event) {
   refs.spinner.classList.remove('is-hidden');
 
   clearBeforePopulating();
@@ -26,95 +26,52 @@ function handleInput(event) {
   const userInput = event.target.value;
   apiServise.query = userInput;
 
-  apiServise
-    .fetchImages()
-    .then(data => {
-      if (data.hits.length === 0) {
-        alert('No matches, please try again!');
-      } else {
-        makeButtonActive();
-        populateGallery(data);
+  try {
+    const apiData = await apiServise.fetchImages();
 
-        apiServise.smallPics = document.querySelectorAll('.small-pic');
-      }
-    })
-    .catch(alert)
-    .finally(() => {
-      let i = 0;
-      let sources = [];
-      const imgObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            // console.log();
-            if (!sources.includes(entry.target.src)) {
-              sources.push(entry.target.src);
-              i += 1;
-            }
-            console.log(i);
-            if (i === 12) {
-              apiServise
-                .fetchImages()
-                .then(data => {
-                  populateGallery(data);
-
-                  refs.showMoreBtn.disabled = false;
-                  refs.btnSpinner.classList.add('is-hidden');
-                })
-                .catch(alert)
-                .finally(makeSmoothScroll);
-
-              i = 0;
-              return;
-            }
-          }
-        });
-      });
-      apiServise.smallPics.forEach(img => {
-        imgObserver.observe(img);
-      });
-    });
+    if (apiData.hits.length === 0) {
+      alert('No matches, please try again!');
+      return;
+    }
+    makeButtonActive();
+    populateGallery(apiData);
+  } catch (error) {
+    alert(error);
+  }
 }
 
-// refs.showMoreBtn.addEventListener('click', handleMoreClick);
+const picsObserver = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    console.log(apiServise.pageNumber);
+    if (entry.intersectionRatio > 0 && apiServise.pageNumber > 1) {
+      apiServise.fetchImages().then(populateGallery).catch(alert);
+    }
+  });
+});
 
-// function handleMoreClick() {
-//   makeButtonNoActive();
-
-//   apiServise
-//     .fetchImages()
-//     .then(data => {
-//       populateGallery(data);
-
-//       refs.showMoreBtn.disabled = false;
-//       refs.btnSpinner.classList.add('is-hidden');
-//     })
-//     .catch(alert)
-//     .finally(makeSmoothScroll);
-// }
+picsObserver.observe(refs.trigger);
 
 function clearBeforePopulating() {
   refs.gallery.innerHTML = '';
   apiServise.query = '';
   apiServise.pageNumber = 1;
 }
+
 function populateGallery(data) {
   const markUp = galleryTpl(data);
   refs.gallery.insertAdjacentHTML('beforeend', markUp);
   apiServise.pageNumber += 1;
 }
-function makeSmoothScroll() {
-  refs.box.scrollIntoView({
-    behavior: 'smooth',
-    block: 'end',
-  });
-}
-function makeButtonNoActive() {
-  refs.showMoreBtn.disabled = true;
-  refs.btnSpinner.classList.remove('is-hidden');
-}
+// function makeSmoothScroll() {
+//   refs.box.scrollIntoView({
+//     behavior: 'smooth',
+//     block: 'end',
+//   });
+// }
+
 function makeButtonActive() {
   refs.spinner.classList.add('is-hidden');
-  refs.showMoreBtn.classList.remove('is-hidden');
+  // refs.showMoreBtn.classList.remove('is-hidden');
 }
 
 const myObserver = new IntersectionObserver(entries => {
