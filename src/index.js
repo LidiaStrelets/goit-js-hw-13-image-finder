@@ -1,4 +1,8 @@
 import debounce from 'lodash.debounce';
+import '@pnotify/core/dist/BrightTheme.css';
+import { alert, defaultModules } from '@pnotify/core/dist/PNotify.js';
+import { defaults } from '@pnotify/core';
+defaults.type = 'error';
 import './sass/main.scss';
 
 import apiServise from './js/apiService.js';
@@ -31,12 +35,14 @@ async function handleInput(event) {
 
     if (apiData.hits.length === 0) {
       alert('No matches, please try again!');
+      refs.spinner.classList.add('is-hidden');
       return;
     }
     makeButtonActive();
     populateGallery(apiData);
   } catch (error) {
     alert(error);
+    refs.spinner.classList.add('is-hidden');
   }
 }
 
